@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CASC Maritime Intelligence Console</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+:root{
+  --ink:#172b3a;
+  --navy:#17374d;
+  --blue:#315b73;
+  --muted:#687680;
+  --line:#c8d0d4;
+  --line2:#e0e5e7;
+  --paper:#f6f7f7;
+  --panel:#ffffff;
+  --soft:#eef1f2;
+  --good:#2e6652;
+  --warn:#856b27;
+  --bad:#7b3f3f;
+  --shadow:0 1px 4px rgba(20,35,45,.06);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:#d9dddf;
+  color:#20282d;
+  font-family:"Segoe UI",Arial,Helvetica,sans-serif;
+  font-size:15px;
+  overflow:hidden;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{
+  width:100vw;height:100vh;
+  display:grid;grid-template-columns:230px 1fr;
+  background:#f7f8f8;
+}
+.sidebar{
+  background:#e9edef;
+  border-right:1px solid #aeb8bd;
+  display:flex;flex-direction:column;
+  min-width:0;
+}
+.brand{
+  height:82px;padding:14px 14px 12px;
+  border-bottom:1px solid #b8c1c5;
+  display:flex;gap:12px;align-items:flex-start;
+}
+.brand-mark{
+  width:38px;height:38px;border:1px solid #87949b;
+  background:#f8f9f9;display:grid;place-items:center;
+}
+.brand-mark svg{width:30px;height:30px;stroke:#17374d;fill:none;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.brand-title{font-size:18px;font-weight:700;letter-spacing:.12em;color:#17374d;line-height:1;text-align:center;flex:1;padding-top:9px}
+.brand-sub{display:none}
+.nav{
+  flex:1;overflow:auto;padding:15px 8px 8px;
+}
+.nav::-webkit-scrollbar{width:7px}.nav::-webkit-scrollbar-thumb{background:#a9b2b6}
+.nav-group{font:11px "Courier New", monospace;letter-spacing:.18em;color:#687780;padding:8px 10px 7px;text-transform:none}
+.nav button{
+  width:100%;border:0;background:transparent;text-align:left;
+  padding:10px 10px 10px 18px;color:#324d5d;
+  font-size:13px;line-height:1.3;border-left:2px solid transparent;
+}
+.nav button:hover{background:#dde3e5}
+.nav button.active{
+  background:#fff;border-left-color:#17374d;color:#132f42;font-weight:600;
+}
+.side-status{
+  border-top:1px solid #b8c1c5;padding:12px 12px 13px;
+  font:11px/1.7 "Courier New", monospace;color:#60717b;
+}
+.side-row{display:flex;justify-content:space-between}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#2f6652;margin-right:6px}
+.main{min-width:0;min-height:0;height:100vh;display:flex;flex-direction:column;background:#f8f9f9}
+.topbar{
+  height:82px;border-bottom:1px solid #b9c3c7;background:#fff;
+  display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+}
+.crumb{font:11px "Courier New", monospace;letter-spacing:.1em;color:#6b7880;text-transform:uppercase}
+.page-title{margin-top:6px;font-size:22px;font-weight:700;color:#17242c}
+.top-right{display:flex;align-items:center;gap:15px}
+.utc{font:11px "Segoe UI",Arial,sans-serif;color:#65727a}
+.status{
+  border:1px solid #a9b8b0;background:#f7faf8;color:#37604f;
+  padding:7px 11px;font:11px "Courier New", monospace;letter-spacing:.08em;
+}
+.content{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px 14px 28px;scrollbar-gutter:stable}
+.content::-webkit-scrollbar{width:9px}.content::-webkit-scrollbar-thumb{background:#aab3b7}
+.casebar{
+  background:#fff;border:1px solid #c2cbcf;box-shadow:var(--shadow);
+  min-height:72px;display:grid;grid-template-columns:1.3fr repeat(4,1fr);
+}
+.case-main{padding:11px 14px;border-right:1px solid #d2d8da}
+.eyebrow{font:11px "Segoe UI",Arial,sans-serif;letter-spacing:.13em;color:#6c7880;text-transform:uppercase}
+.case-id{font:600 16px "Segoe UI",Arial,sans-serif;color:#17374d;margin-top:5px}
+.case-loc{font-size:12px;color:#66737a;margin-top:2px}
+.case-stat{padding:11px 13px;border-right:1px solid #d2d8da}
+.case-stat:last-child{border-right:0}
+.case-value{font:13px "Segoe UI",Arial,sans-serif;font-weight:600;color:#203946;margin-top:7px}
+.workspace{margin-top:10px}
+.page{display:none}
+.page.active{display:block}
+.section-head{
+  display:flex;justify-content:space-between;align-items:flex-end;margin:0 0 8px;
+}
+.section-head h2{margin:0;font-size:24px;color:#1c292f}
+.section-head .meta{font:11px "Courier New", monospace;color:#6d7980;letter-spacing:.08em}
+.toolbar{
+  background:#fff;border:1px solid var(--line);padding:7px;
+  display:flex;gap:5px;align-items:center;
+}
+.tool{
+  border:1px solid #b8c2c6;background:#f7f8f8;color:#365366;
+  padding:6px 9px;font:600 11px "Segoe UI",Arial,sans-serif;text-transform:none;
+}
+.tool.active,.tool:hover{background:#17374d;color:#fff;border-color:#17374d}
+.map-layout{display:grid;grid-template-columns:minmax(0,1fr) 305px;gap:10px}
+.map-panel,.panel{
+  background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);
+}
+.panel-head{
+  height:40px;border-bottom:1px solid var(--line2);padding:0 11px;
+  display:flex;align-items:center;justify-content:space-between;
+  font:11px "Segoe UI",Arial,sans-serif;letter-spacing:.02em;color:#314b59;text-transform:none;
+}
+#copMap{height:560px;min-height:420px;background:#d9dee0}
+.map-wrap{position:relative}
+.map-overlay{
+  position:absolute;z-index:500;left:9px;top:9px;
+  background:rgba(255,255,255,.94);border:1px solid #bac3c7;
+  display:flex;flex-wrap:wrap;
+}
+.map-overlay button{
+  border:0;border-right:1px solid #d4d9db;background:#fff;
+  padding:7px 9px;font:11px "Courier New", monospace;color:#36505f;
+}
+.map-overlay button.active{background:#17374d;color:#fff}
+.map-note{
+  position:absolute;z-index:500;right:9px;bottom:9px;
+  background:rgba(255,255,255,.95);border:1px solid #bdc6ca;
+  padding:8px 10px;font:11px "Courier New", monospace;color:#52636d;
+}
+.evidence{display:flex;flex-direction:column}
+.evidence-block{padding:11px;border-bottom:1px solid var(--line2)}
+.evidence-block:last-child{border-bottom:0}
+.ev-title{font:11px "Courier New", monospace;letter-spacing:.1em;color:#6b7780}
+.ev-main{font-size:15px;font-weight:600;color:#17374d;margin-top:5px}
+.ev-line{display:flex;justify-content:space-between;margin-top:6px;font:11px "Segoe UI",Arial,sans-serif;color:#5e6d75}
+.ev-line strong{color:#273e4b}
+.ev-arrow{font:16px "Segoe UI",Arial,sans-serif;color:#9ba6aa;text-align:center;margin:2px 0}
+.evidence-status{display:inline-block;border:1px solid #afbeb7;padding:4px 7px;font:11px "Courier New", monospace;color:#37604f;background:#f7faf8}
+.timeline{margin-top:10px}
+.timeline-track{padding:12px 14px;background:#fff;border:1px solid var(--line);display:flex;gap:0;position:relative;--timeline-progress:0%}
+.timeline-track:before{content:"";position:absolute;left:14px;right:14px;top:11px;height:2px;background:#c8d0d4;z-index:0}
+.timeline-track:after{content:"";position:absolute;left:14px;top:11px;height:2px;width:var(--timeline-progress);background:#a33b3b;z-index:0}
+.t-item{flex:1;border-top:2px solid #8d9aa0;padding:9px 8px 3px;position:relative;cursor:pointer;z-index:1;background:#fff}
+.t-item.active,.t-item:hover{border-top-color:#a33b3b;background:#fff8f8}
+.t-item.active:before{background:#a33b3b;box-shadow:0 0 0 1px #a33b3b}
+.t-item:after{content:"";position:absolute;left:8px;right:-1px;top:-2px;height:2px;background:transparent;pointer-events:none}
+.t-item.active:after{background:#a33b3b;z-index:-1}
+.vessel-mini{margin-top:10px;overflow:hidden;grid-column:2}
+.vessel-visual{height:118px;background:#dbe2e4;border-bottom:1px solid var(--line2);overflow:hidden}
+.vessel-visual svg{width:100%;height:100%;display:block}
+.vessel-mini-body{padding:10px 11px}
+.vessel-mini-body b{font-size:14px;color:#17374d}
+.vessel-tag{margin-left:8px;padding:3px 6px;border:1px solid #b9c4c8;font:10px Consolas,"Courier New",monospace;color:#5c6c74}
+.vessel-mini-meta{margin-top:6px;font:10px Consolas,"Courier New",monospace;color:#63737b;line-height:1.45}
+.t-item:before{content:"";position:absolute;left:0;top:-6px;width:8px;height:8px;background:#17374d;border:2px solid #fff;box-shadow:0 0 0 1px #17374d}
+.t-time{font:11px "Courier New", monospace;color:#718087}.t-label{font-size:11px;font-weight:600;margin-top:4px;color:#324d5d}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.statbox{background:#fff;border:1px solid var(--line);padding:12px}
+.stat-label{font:11px "Courier New", monospace;color:#69767d;text-transform:uppercase}
+.stat-value{font:21px Consolas, "Courier New", monospace;font-weight:600;color:#20333e;margin-top:8px}
+.stat-sub{font:10px;color:#6b777d;margin-top:3px}
+.map-page{height:480px}
+.page-map{height:480px}
+.info-grid{display:grid;grid-template-columns:1fr 330px;gap:10px}
+.info-list{padding:10px 12px}
+.info-row{display:flex;justify-content:space-between;border-bottom:1px solid #e2e6e8;padding:9px 0;font:10px Consolas, "Courier New", monospace}
+.info-row:last-child{border-bottom:0}
+.info-row span{color:#718087}.info-row strong{color:#263f4e;text-align:right}
+.sar-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px}
+.sar-map{height:525px;min-height:420px;background:#d9dee0}
+.map-tabs{position:absolute;z-index:500;right:10px;top:10px;background:#fff;border:1px solid #b8c2c6;display:flex}
+.map-tabs button{border:0;border-left:1px solid #d6dcde;background:#fff;padding:7px 9px;font:10px Consolas, "Courier New", monospace}
+.map-tabs button.active{background:#17374d;color:#fff}
+.validation{margin-top:10px}
+.validation-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line2);font:10px Consolas, "Courier New", monospace}
+.badge{padding:4px 7px;border:1px solid #b8c2c6;font:10px Consolas, "Courier New", monospace}
+.badge.good{color:#37604f;border-color:#aebfb6;background:#f7faf8}
+.badge.warn{color:#806829;border-color:#cfc3a2;background:#fbfaf4}
+.character-map{height:460px;min-height:380px;background:#d9dee0}
+.map-page-layout{display:grid;grid-template-columns:minmax(0,1fr) 315px;gap:10px}
+.drift-layout{display:grid;grid-template-columns:minmax(0,1fr) 325px;gap:10px}
+.drift-map{height:540px;min-height:420px;background:#d9dee0}
+.forecast{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}
+.forecast button{border:1px solid #c3cbce;background:#f8f9f9;padding:9px;font:11px "Courier New", monospace;color:#3d5664}
+.forecast button.active{background:#17374d;color:#fff}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border-bottom:1px solid #dfe4e6;padding:10px 8px;text-align:left;font:11px "Courier New", monospace;white-space:nowrap}
+th{background:#eef1f2;color:#5e6c74;font-weight:600;text-transform:uppercase}
+td{color:#2c4654}
+tr:hover td{background:#f7f8f8}
+.relevant{font-weight:600;color:#2e6652}
+.excluded{color:#7a4444}
+.candidate{padding:13px;border-bottom:1px solid var(--line)}
+.candidate:last-child{border-bottom:0}
+.candidate-top{display:flex;justify-content:space-between}
+.candidate-name{font-size:15px;font-weight:700;color:#233d4c}
+.rank{font:11px "Courier New", monospace;color:#6d7980}
+.bars{margin-top:9px;display:grid;grid-template-columns:65px 1fr 38px;gap:6px;align-items:center}
+.bar-label,.bar-val{font:11px "Courier New", monospace;color:#617078}
+.bar{height:5px;background:#e0e5e7}.bar i{display:block;height:100%;background:#294b61}
+.why{margin-top:10px;background:#f0f2f3;border-left:2px solid #8d9ba1;padding:8px;font-size:11px;line-height:1.5;color:#52626a}
+.casc-layout{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.controls{padding:13px}
+.control{margin-bottom:14px}
+.control:last-child{margin-bottom:0}
+.control-head{display:flex;justify-content:space-between;font:11px "Courier New", monospace;color:#53636c}
+input[type=range]{width:100%;accent-color:#17374d}
+.dist{
+  height:190px;padding:18px;display:flex;align-items:flex-end;gap:20px;
+  border-bottom:1px solid var(--line2);background:
+  repeating-linear-gradient(to top,#fff 0,#fff 37px,#eef1f2 38px);
+}
+.dist-col{flex:1;text-align:center}
+.dist-bar{width:100%;background:#d7dde0;border:1px solid #bcc6ca;position:relative}
+.dist-bar span{position:absolute;top:-19px;left:0;right:0;font:11px "Courier New", monospace;color:#445963}
+.dist-name{font:11px "Courier New", monospace;margin-top:7px;color:#4e616b}
+.flip{padding:14px;background:#fff}
+.flip-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#d8dee0;border:1px solid #d8dee0}
+.flip-cell{background:#fff;padding:11px}
+.flip-label{font:11px "Courier New", monospace;color:#6a777e;text-transform:uppercase}
+.flip-value{font:12px Consolas, "Courier New", monospace;font-weight:600;color:#213b49;margin-top:6px}
+.certificate{
+  background:#fff;border:1px solid #9eaab0;box-shadow:var(--shadow);
+  max-width:900px;margin:0 auto;padding:25px;
+}
+.cert-head{text-align:center;border-bottom:2px solid #17374d;padding-bottom:18px}
+.cert-title{font:600 16px "Segoe UI",Arial,sans-serif;letter-spacing:.12em;color:#17374d}
+.cert-sub{font:11px "Courier New", monospace;color:#6b777e;margin-top:7px}
+.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #c7ced1;margin-top:20px}
+.cert-field{padding:13px;border-right:1px solid #d7dcde;border-bottom:1px solid #d7dcde}
+.cert-field:nth-child(2n){border-right:0}
+.cert-field:nth-last-child(-n+2){border-bottom:0}
+.cert-label{font:10px "Segoe UI",Arial,sans-serif;color:#728087;text-transform:uppercase}
+.cert-val{font:12px Consolas, "Courier New", monospace;font-weight:600;color:#263f4c;margin-top:6px}
+.cert-status{text-align:center;margin:20px 0;padding:12px;border:2px solid #476a5c;font:600 15px Consolas, "Courier New", monospace;color:#315c4c;letter-spacing:.1em}
+.disclaimer{font-size:11px;line-height:1.55;color:#67757c;border-top:1px solid #d7dcde;padding-top:13px}
+.history{position:relative;padding:10px 20px}
+.history:before{content:"";position:absolute;left:28px;top:20px;bottom:20px;width:1px;background:#b9c3c7}
+.event{position:relative;padding:11px 10px 11px 45px;border-bottom:1px solid #e0e5e7;cursor:pointer}
+.event:last-child{border-bottom:0}
+.event:before{content:"";position:absolute;left:24px;top:18px;width:8px;height:8px;background:#17374d;border:2px solid #fff;box-shadow:0 0 0 1px #17374d}
+.event:hover{background:#f6f8f8}
+.event-top{display:flex;justify-content:space-between}
+.event-title{font-size:11px;font-weight:600;color:#2d4a59}.event-time{font:11px "Courier New", monospace;color:#728087}
+.event-meta{font:11px "Courier New", monospace;color:#6b7880;margin-top:4px}
+.note{padding:10px;background:#f1f3f4;border-left:2px solid #87959b;font-size:11px;color:#53636b;line-height:1.5}
+.btn-row{display:flex;gap:7px;margin-top:10px}
+.primary{border:1px solid #17374d;background:#17374d;color:#fff;padding:8px 11px;font:10px Consolas, "Courier New", monospace}
+.secondary{border:1px solid #b8c2c6;background:#fff;color:#3d5664;padding:8px 11px;font:10px Consolas, "Courier New", monospace}
+.small-map-legend{
+  position:absolute;z-index:500;left:10px;bottom:10px;background:rgba(255,255,255,.94);
+  border:1px solid #bcc5c9;padding:8px 10px;font:11px/1.7 "Courier New", monospace;color:#52636c;
+}
+.legend-line{display:inline-block;width:22px;height:2px;background:#17374d;vertical-align:middle;margin-right:5px}
+.legend-dash{display:inline-block;width:22px;border-top:2px dashed #17374d;vertical-align:middle;margin-right:5px}
+.leaflet-control-attribution{font:10px Consolas, "Courier New", monospace!important}
+.map-point-label{background:#fff;border:1px solid #9eabb0;border-radius:2px;padding:2px 5px;font:10px Consolas,"Courier New",monospace;color:#17374d;box-shadow:0 1px 3px rgba(20,35,45,.12)}
+.vessel-map-marker{background:#17374d;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px #17374d;width:14px;height:14px}
+.vessel-map-marker.primary{background:#a33b3b;box-shadow:0 0 0 1px #a33b3b}
+
+.candidate-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.candidate-lead-value,.candidate-alt-value{font-size:18px!important}
+.candidate-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px}
+.candidate-map{height:410px;min-height:360px;background:#d9dee0}
+.candidate-score{font-weight:700}
+.map-north{position:absolute;z-index:500;right:10px;top:10px;width:38px;height:48px;background:rgba(255,255,255,.95);border:1px solid #bcc5c9;text-align:center;padding-top:5px;font:12px "Courier New",monospace;color:#17374d;box-shadow:0 1px 3px rgba(20,35,45,.08)}
+.map-north span{display:block;font-size:15px;line-height:15px}
+.map-legend{position:absolute;z-index:500;left:10px;bottom:10px;background:rgba(255,255,255,.95);border:1px solid #bcc5c9;padding:7px 9px;display:flex;gap:12px;font:10px "Courier New",monospace;color:#53636c}
+.map-legend span{white-space:nowrap}
+.legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:4px}
+.spill-dot{background:#222}
+.leader-dot{background:#a33b3b}
+.legend-line-mini{display:inline-block;width:18px;border-top:2px dashed #17374d;vertical-align:middle;margin-right:4px}
+@media(max-width:1050px){
+  .candidate-summary{grid-template-columns:1fr 1fr}
+  .candidate-layout{grid-template-columns:1fr}
+}
+
+@media(max-width:1050px){
+  .app{grid-template-columns:205px 1fr}
+  .map-layout,.sar-layout,.drift-layout,.info-grid,.map-page-layout{grid-template-columns:1fr}
+  .vessel-mini{grid-column:auto}
+  .casebar{grid-template-columns:1.4fr repeat(2,1fr)}
+  .case-stat:nth-last-child(-n+2){display:none}
+}
+@media(max-width:760px){
+  body{overflow:auto}.app{height:auto;min-height:100vh;grid-template-columns:1fr}
+  .sidebar{height:auto}.nav{max-height:280px}.main{min-height:calc(100vh - 360px)}
+  .topbar{height:auto;padding:12px}.grid3,.grid4,.casc-layout{grid-template-columns:1fr}
+}
+
+.leaflet-top.leaflet-left .leaflet-control-zoom{
+  margin-top:62px !important;
+  margin-left:10px !important;
+}
+.leaflet-control-zoom a{
+  width:32px !important;
+  height:32px !important;
+  line-height:32px !important;
+  font-size:19px !important;
+}
+
+
+.event{cursor:pointer}
+.event:hover{background:#f7f9f9}
+
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M8 29h31l-4 7H13z"/>
+        <path d="M13 29V18h18v11"/>
+        <path d="M18 18v-6h9v6"/>
+        <path d="M22 12V8h4v4"/>
+        <path d="M7 39c4-3 8 3 12 0s8 3 12 0 7 2 10 0"/>
+        <path d="M17 24h4M24 24h4"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-title">CASC</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-group">Operations</div>
+    <button data-page="cop" class="active">Common Operating Picture</button>
+    <button data-page="incident">Incident Control</button>
+
+    <div class="nav-group">Analysis</div>
+    <button data-page="sar">SAR Spill Detection</button>
+    <button data-page="character">Spill Characterization</button>
+    <button data-page="drift">Drift / Backtrack</button>
+    <button data-page="ais">AIS Reconstruction</button>
+
+    <div class="nav-group">Attribution</div>
+    <button data-page="candidates">Candidate Vessels</button>
+    <button data-page="casc">CASC Stability</button>
+
+    <div class="nav-group">Traceability</div>
+    <button data-page="certificate">Stability Certificate</button>
+    <button data-page="history">Analysis History</button>
+  </nav>
+
+  <div class="side-status">
+    <div class="side-row"><span><i class="dot"></i>API</span><span id="apiState">CHECKING</span></div>
+    <div class="side-row"><span>DATA</span><span id="dataState">DEMO</span></div>
+    <div class="side-row"><span>COORD</span><span>WGS84</span></div>
+  </div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div>
+    <div class="crumb">CASE / <span id="crumbCase">CASC-2026-001</span> / <span id="crumbStep">01</span></div>
+    <div class="page-title" id="pageTitle">COMMON OPERATING PICTURE</div>
+  </div>
+  <div class="top-right">
+    <div class="utc">UTC <span id="clock">--:--:--</span></div>
+    <div class="status"><span class="dot"></span>MONITORING</div>
+  </div>
+</header>
+
+<div class="content">
+
+  <div class="casebar">
+    <div class="case-main">
+      <div class="eyebrow">Active Investigation</div>
+      <div class="case-id" id="caseId">CASC-2026-001</div>
+      <div class="case-loc" id="caseLocation">Arabian Sea</div>
+    </div>
+    <div class="case-stat"><div class="eyebrow">Status</div><div class="case-value" id="caseStatus">UNDER ANALYSIS</div></div>
+    <div class="case-stat"><div class="eyebrow">Detected</div><div class="case-value" id="caseDetected">04 SEP 2026 / 14:12 UTC</div></div>
+    <div class="case-stat"><div class="eyebrow">Satellite</div><div class="case-value" id="caseSatellite">Sentinel-1 / SAR GRD</div></div>
+    <div class="case-stat"><div class="eyebrow">Spill</div><div class="case-value" id="caseArea">12.8 km²</div></div>
+  </div>
+
+  <div class="workspace">
+
+    <!-- COP -->
+    <section class="page active" id="page-cop">
+      <div class="section-head">
+        <div><div class="eyebrow">Operational Picture</div><h2>Common Operating Picture</h2></div>
+        <div class="meta">SATELLITE / AIS / METOCEAN / DRIFT</div>
+      </div>
+
+      <div class="map-layout">
+        <div class="map-panel">
+          <div class="panel-head"><span>Maritime Investigation Map</span><span id="mapCoord">14.218°N / 67.731°E</span></div>
+          <div class="map-wrap">
+            <div id="copMap"></div>
+            <div class="map-overlay">
+              <button class="active" data-layer="satellite">SATELLITE</button>
+              <button data-layer="spill">SPILL</button>
+              <button data-layer="ais">AIS</button>
+              <button data-layer="meteo">METOCEAN</button>
+              <button data-layer="drift">DRIFT</button>
+              <button data-layer="all">ALL</button>
+            </div>
+            <div class="map-note">TIME <b id="mapTime">14:12 UTC</b> · SCALE 1:1</div>
+            <div class="map-north"><b>N</b><span>▲</span></div>
+            <div class="map-legend"><span><i class="legend-dot spill-dot"></i> SPILL</span><span><i class="legend-dot leader-dot"></i> LEADER</span><span><i class="legend-line-mini"></i> DRIFT</span></div>
+          </div>
+        </div>
+
+        <div class="panel evidence">
+          <div class="panel-head">Evidence Chain</div>
+          <div class="evidence-block">
+            <div class="ev-title">01 / SATELLITE OBSERVATION</div>
+            <div class="ev-main">Spill detected</div>
+            <div class="ev-line"><span>Area</span><strong id="evArea">12.8 km²</strong></div>
+            <div class="ev-line"><span>Confidence</span><strong id="evConf">91%</strong></div>
+            <div class="ev-line"><span>Scene</span><strong>Sentinel-1 SAR GRD</strong></div>
+          </div>
+          <div class="ev-arrow">↓</div>
+          <div class="evidence-block">
+            <div class="ev-title">02 / SOURCE RECONSTRUCTION</div>
+            <div class="ev-main">Backtrack complete</div>
+            <div class="ev-line"><span>Distance</span><strong id="evDistance">18.4 km</strong></div>
+            <div class="ev-line"><span>Direction</span><strong id="evDirection">NE</strong></div>
+            <div class="ev-line"><span>Model confidence</span><strong id="evDriftConf">86%</strong></div>
+          </div>
+          <div class="ev-arrow">↓</div>
+          <div class="evidence-block">
+            <div class="ev-title">03 / VESSEL SOURCE HYPOTHESIS</div>
+            <div class="ev-main" id="evLeader">ALPHA MERIDIAN</div>
+            <div class="ev-line"><span>Initial correlation</span><strong id="evScore">87%</strong></div>
+            <div class="ev-line"><span>Closest alternate</span><strong id="evAlternate">BRAVO TRADER</strong></div>
+          </div>
+          <div class="ev-arrow">↓</div>
+          <div class="evidence-block">
+            <div class="ev-title">04 / CASC STABILITY</div>
+            <div class="ev-main"><span class="evidence-status" id="evStatus">ROBUST</span></div>
+            <div class="ev-line"><span>Winner probability</span><strong id="evWinner">82%</strong></div>
+            <div class="ev-line"><span>Winner flip</span><strong id="evFlip">14 min</strong></div>
+          </div>
+        </div>
+        <div class="vessel-mini panel">
+          <div class="panel-head"><span>Vessel Under Processing</span><span>LIVE REVIEW</span></div>
+          <div class="vessel-visual" aria-label="Demo vessel visual">
+            <svg viewBox="0 0 520 180" role="img" aria-label="Demo cargo vessel">
+              <defs>
+                <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e7ecee"/><stop offset="1" stop-color="#cbd5d9"/></linearGradient>
+              </defs>
+              <rect width="520" height="180" fill="url(#seaG)"/>
+              <path d="M0 128 C70 112 118 144 190 126 S330 110 390 130 S465 143 520 124 V180 H0Z" fill="#b7c5ca"/>
+              <path d="M112 118 H390 L362 145 H146 Z" fill="#17374d"/>
+              <path d="M152 82 H348 V118 H152 Z" fill="#f7f8f8" stroke="#17374d" stroke-width="2"/>
+              <path d="M178 60 H315 V82 H178 Z" fill="#dfe5e7" stroke="#17374d" stroke-width="2"/>
+              <path d="M198 38 H258 V60 H198 Z" fill="#c7d1d5" stroke="#17374d" stroke-width="2"/>
+              <path d="M318 82 L350 82 L374 118 H318 Z" fill="#dfe5e7" stroke="#17374d" stroke-width="2"/>
+              <g fill="#17374d"><rect x="192" y="88" width="14" height="12"/><rect x="216" y="88" width="14" height="12"/><rect x="240" y="88" width="14" height="12"/><rect x="264" y="88" width="14" height="12"/><rect x="288" y="88" width="14" height="12"/></g>
+              <path d="M55 151 C120 143 170 159 235 151 S355 143 430 153 S485 157 520 150" fill="none" stroke="#ffffff" stroke-width="3" opacity=".9"/>
+            </svg>
+          </div>
+          <div class="vessel-mini-body"><div><b id="homeVesselName">ALPHA MERIDIAN</b><span class="vessel-tag">CANDIDATE 01</span></div><div class="vessel-mini-meta">MMSI 123456789 · 11.4 kn · COG 042° · SOURCE WINDOW YES</div></div>
+        </div>
+      </div>
+
+      <div class="timeline panel">
+        <div class="panel-head">Investigation Timeline <span>Click a stage to open</span></div>
+        <div class="timeline-track">
+          <div class="t-item active" data-page="sar"><div class="t-time">14:12</div><div class="t-label">SAR DETECTION</div></div>
+          <div class="t-item" data-page="character"><div class="t-time">13:42</div><div class="t-label">CHARACTERIZATION</div></div>
+          <div class="t-item" data-page="drift"><div class="t-time">13:20</div><div class="t-label">DRIFT / BACKTRACK</div></div>
+          <div class="t-item" data-page="ais"><div class="t-time">12:58</div><div class="t-label">AIS RECONSTRUCTION</div></div>
+          <div class="t-item" data-page="candidates"><div class="t-time">12:41</div><div class="t-label">CANDIDATE RANKING</div></div>
+          <div class="t-item" data-page="casc"><div class="t-time">12:20</div><div class="t-label">CASC</div></div>
+          <div class="t-item" data-page="certificate"><div class="t-time">12:18</div><div class="t-label">CERTIFICATE</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INCIDENT -->
+    <section class="page" id="page-incident">
+      <div class="section-head"><div><div class="eyebrow">Operations</div><h2>Incident Control</h2></div><div class="meta">CASE MANAGEMENT / PIPELINE STATE</div></div>
+      <div class="grid4">
+        <div class="statbox"><div class="stat-label">Incident</div><div class="stat-value" style="font-size:16px">CASC-2026-001</div><div class="stat-sub">Active investigation</div></div>
+        <div class="statbox"><div class="stat-label">Status</div><div class="stat-value" style="font-size:16px">UNDER ANALYSIS</div><div class="stat-sub">Reopen / close controlled by analyst</div></div>
+        <div class="statbox"><div class="stat-label">Detected</div><div class="stat-value" style="font-size:16px">04 SEP</div><div class="stat-sub">14:12 UTC</div></div>
+        <div class="statbox"><div class="stat-label">Area</div><div class="stat-value">12.8</div><div class="stat-sub">km² detected spill</div></div>
+      </div>
+      <div style="margin-top:10px" class="panel">
+        <div class="panel-head">Investigation Pipeline</div>
+        <div class="info-list">
+          <div class="info-row"><span>01 · Satellite detection</span><strong>COMPLETED</strong></div>
+          <div class="info-row"><span>02 · Spill characterization</span><strong>COMPLETED</strong></div>
+          <div class="info-row"><span>03 · Drift / backtrack</span><strong>COMPLETED</strong></div>
+          <div class="info-row"><span>04 · AIS reconstruction</span><strong>COMPLETED</strong></div>
+          <div class="info-row"><span>05 · Candidate ranking</span><strong>COMPLETED</strong></div>
+          <div class="info-row"><span>06 · CASC robustness</span><strong>COMPLETED</strong></div>
+          <div class="info-row"><span>07 · Stability certificate</span><strong>GENERATED</strong></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="panel"><div class="panel-head">Incident Area</div><div id="incidentMap" class="page-map"></div></div>
+        <div class="panel"><div class="panel-head">Analyst Notes</div><div style="padding:12px"><div class="note">Investigation uses satellite detection, spill geometry, metocean backtracking and historical AIS traffic to produce a source hypothesis. CASC evaluates the stability of that hypothesis under plausible uncertainty.</div><div class="btn-row"><button class="primary">SAVE NOTE</button><button class="secondary">REOPEN ANALYSIS</button></div></div></div>
+      </div>
+    </section>
+
+    <!-- SAR -->
+    <section class="page" id="page-sar">
+      <div class="section-head"><div><div class="eyebrow">Step / Satellite Observation</div><h2>SAR Spill Detection</h2></div><div class="badge good">DETECTION VALIDATED</div></div>
+      <div class="sar-layout">
+        <div class="map-panel">
+          <div class="panel-head"><span>Sentinel-1 SAR Scene / Spill Overlay</span><span>GRD · 14:12 UTC</span></div>
+          <div class="map-wrap"><div id="sarMap" class="sar-map"></div>
+            <div class="map-tabs"><button class="active" data-sar-view="overlay">OVERLAY</button><button data-sar-view="scene">SCENE</button><button data-sar-view="detection">DETECTION</button></div>
+            <div class="small-map-legend"><span class="legend-line"></span>spill boundary &nbsp; <span class="legend-dash"></span>centroid / source reference</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">Observation Record</div>
+          <div class="info-list">
+            <div class="info-row"><span>Platform</span><strong>Sentinel-1</strong></div>
+            <div class="info-row"><span>Product</span><strong>SAR GRD</strong></div>
+            <div class="info-row"><span>Polarization</span><strong>VV</strong></div>
+            <div class="info-row"><span>Acquisition</span><strong>04 SEP 2026<br>14:12 UTC</strong></div>
+            <div class="info-row"><span>Scene quality</span><strong>GOOD</strong></div>
+            <div class="info-row"><span>Spill detected</span><strong>YES</strong></div>
+            <div class="info-row"><span>Spill area</span><strong>12.8 km²</strong></div>
+            <div class="info-row"><span>Detection confidence</span><strong>91%</strong></div>
+          </div>
+          <div style="padding:12px"><div class="validation-row"><span>Look-alike check</span><span class="badge good">PASSED</span></div><div class="validation-row"><span>Natural feature check</span><span class="badge good">LOW RISK</span></div><div class="validation-row"><span>Detection state</span><span class="badge good">VALIDATED</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARACTER -->
+    <section class="page" id="page-character">
+      <div class="section-head"><div><div class="eyebrow">Step / Geometry Derivation</div><h2>Spill Characterization</h2></div><div class="badge">GEOMETRY DERIVED</div></div>
+      <div class="grid3">
+        <div class="statbox"><div class="stat-label">Area</div><div class="stat-value">12.8 km²</div></div>
+        <div class="statbox"><div class="stat-label">Length</div><div class="stat-value">6.7 km</div></div>
+        <div class="statbox"><div class="stat-label">Width</div><div class="stat-value">2.4 km</div></div>
+        <div class="statbox"><div class="stat-label">Perimeter</div><div class="stat-value">17.2 km</div></div>
+        <div class="statbox"><div class="stat-label">Orientation</div><div class="stat-value">NE 032°</div></div>
+        <div class="statbox"><div class="stat-label">Estimated age</div><div class="stat-value">~6 h</div></div>
+      </div>
+      <div class="map-page-layout" style="margin-top:10px">
+        <div class="map-panel"><div class="panel-head">Spill Geometry / Centroid <span>WGS84</span></div><div id="charMap" class="character-map"></div></div>
+        <div class="panel">
+          <div class="panel-head">Characterization Assessment</div>
+          <div class="info-list">
+            <div class="info-row"><span>Shape</span><strong>ELONGATED</strong></div>
+            <div class="info-row"><span>Orientation</span><strong>NE 032°</strong></div>
+            <div class="info-row"><span>Centroid</span><strong>14.218°N<br>67.731°E</strong></div>
+            <div class="info-row"><span>Look-alike likelihood</span><strong>LOW</strong></div>
+            <div class="info-row"><span>Image quality</span><strong>GOOD</strong></div>
+            <div class="info-row"><span>Geometry state</span><strong>READY FOR DRIFT</strong></div>
+          </div>
+          <div style="padding:12px"><div class="note">The derived spill polygon and centroid become the observation state used by the drift/backtrack module.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DRIFT -->
+    <section class="page" id="page-drift">
+      <div class="section-head"><div><div class="eyebrow">Step / Source Reconstruction</div><h2>Drift / Backtrack</h2></div><div class="badge good">SOURCE RECONSTRUCTED</div></div>
+      <div class="drift-layout">
+        <div class="map-panel">
+          <div class="panel-head"><span>Observed Spill → Backtrack → Source Region</span><span id="driftMapTime">14:12 UTC</span></div>
+          <div class="map-wrap"><div id="driftMap" class="drift-map"></div>
+            <div class="small-map-legend">
+              <span class="legend-line"></span>observed / forecast &nbsp;
+              <span class="legend-dash"></span>backtrack &nbsp;
+              <b>○</b> source region
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">Reconstruction State</div>
+          <div class="info-list">
+            <div class="info-row"><span>Observed spill</span><strong>14:12 UTC</strong></div>
+            <div class="info-row"><span>Backtrack window</span><strong>08:12 — 14:12</strong></div>
+            <div class="info-row"><span>Distance</span><strong id="driftDistance">18.4 km</strong></div>
+            <div class="info-row"><span>Direction</span><strong id="driftDirection">NORTHEAST</strong></div>
+            <div class="info-row"><span>Source region</span><strong>14.218°N<br>67.731°E</strong></div>
+            <div class="info-row"><span>Source radius</span><strong>5.0 km</strong></div>
+            <div class="info-row"><span>Model</span><strong>Demo Drift Model</strong></div>
+            <div class="info-row"><span>Model confidence</span><strong>86%</strong></div>
+          </div>
+          <div class="panel-head" style="margin-top:4px">Metocean Inputs</div>
+          <div class="info-list">
+            <div class="info-row"><span>Wind</span><strong>18 kn · NE</strong></div>
+            <div class="info-row"><span>Surface current</span><strong>0.8 kn · NE</strong></div>
+            <div class="info-row"><span>Wave</span><strong>1.7 m</strong></div>
+            <div class="info-row"><span>SST</span><strong>28.4 °C</strong></div>
+          </div>
+          <div style="padding:10px 12px">
+            <div class="eyebrow">Future Drift Forecast</div>
+            <div class="forecast"><button class="active" data-fc="2">+2 H</button><button data-fc="6">+6 H</button><button data-fc="12">+12 H</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:10px">
+        <div class="panel-head">Time Reconstruction</div>
+        <div style="padding:12px 14px">
+          <input id="driftSlider" type="range" min="0" max="6" value="6" step="1">
+          <div style="display:flex;justify-content:space-between;font:10px Consolas, 'Courier New', monospace;color:#6d7980;margin-top:6px">
+            <span>08:12 SOURCE WINDOW</span><span>10:30</span><span>12:30</span><span>14:12 OBSERVED</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AIS -->
+    <section class="page" id="page-ais">
+      <div class="section-head"><div><div class="eyebrow">Step / Traffic Reconstruction</div><h2>AIS Reconstruction</h2></div><div class="badge">SOURCE WINDOW FILTERED</div></div>
+      <div class="grid3">
+        <div class="statbox"><div class="stat-label">Source window</div><div class="stat-value" style="font-size:18px">08:12–10:30</div><div class="stat-sub">UTC</div></div>
+        <div class="statbox"><div class="stat-label">Source radius</div><div class="stat-value">5.0 km</div></div>
+        <div class="statbox"><div class="stat-label">Relevant vessels</div><div class="stat-value" id="aisRelevant">3</div></div>
+      </div>
+      <div class="map-panel" style="margin-top:10px">
+        <div class="panel-head"><span>Historical AIS / Source Region</span><span>TRACK RECONSTRUCTION</span></div>
+        <div id="aisMap" style="height:420px"></div>
+      </div>
+      <div class="panel" style="margin-top:10px">
+        <div class="panel-head"><span>Traffic Filter Results</span><span><button class="secondary" style="padding:5px 8px">FILTER</button> <button class="secondary" style="padding:5px 8px">EXPORT</button></span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Vessel</th><th>MMSI</th><th>Time</th><th>SOG</th><th>COG</th><th>Distance</th><th>Window</th><th>Assessment</th></tr></thead>
+            <tbody id="aisRows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="panel"><div class="panel-head">Included Traffic</div><div class="info-list"><div class="info-row"><span>Inside source region</span><strong>3</strong></div><div class="info-row"><span>Inside time window</span><strong>3</strong></div><div class="info-row"><span>Compatible trajectory</span><strong>3</strong></div></div></div>
+        <div class="panel"><div class="panel-head">Excluded Traffic</div><div class="info-list"><div class="info-row"><span>Outside time window</span><strong>1</strong></div><div class="info-row"><span>Outside source region</span><strong>1</strong></div><div class="info-row"><span>Low trajectory compatibility</span><strong>0</strong></div></div></div>
+      </div>
+    </section>
+
+    <!-- CANDIDATES -->
+    <section class="page" id="page-candidates">
+      <div class="section-head"><div><div class="eyebrow">Step / Evidence Correlation</div><h2>Candidate Vessels</h2></div><div class="badge">INITIAL RANKING</div></div>
+
+      <div class="candidate-summary">
+        <div class="statbox"><div class="stat-label">Candidates in source window</div><div class="stat-value" id="candidateCount">3</div><div class="stat-sub">AIS-filtered traffic</div></div>
+        <div class="statbox"><div class="stat-label">Leading vessel</div><div class="stat-value candidate-lead-value" id="candidateLeader">ALPHA</div><div class="stat-sub">Highest combined correlation</div></div>
+        <div class="statbox"><div class="stat-label">Initial correlation</div><div class="stat-value" id="candidateLeaderScore">87%</div><div class="stat-sub">Before CASC robustness analysis</div></div>
+        <div class="statbox"><div class="stat-label">Closest alternate</div><div class="stat-value candidate-alt-value" id="candidateAlternate">BRAVO</div><div class="stat-sub">Next highest correlation</div></div>
+      </div>
+
+      <div class="candidate-layout">
+        <div class="panel">
+          <div class="panel-head"><span>Source Region / Candidate Traffic</span><span>TIME + SPACE FILTER</span></div>
+          <div class="map-wrap"><div id="candidateMap" class="candidate-map"></div>
+            <div class="small-map-legend"><span class="legend-line"></span>candidate track &nbsp; <span class="legend-dash"></span>backtrack &nbsp; <b>○</b> source region</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">Evidence Weighting</div>
+          <div class="info-list">
+            <div class="info-row"><span>Temporal overlap</span><strong>Source-window match</strong></div>
+            <div class="info-row"><span>Spatial proximity</span><strong>Source-region distance</strong></div>
+            <div class="info-row"><span>Drift consistency</span><strong>Backtrack compatible</strong></div>
+            <div class="info-row"><span>AIS continuity</span><strong>Track available</strong></div>
+            <div class="info-row"><span>Trajectory fit</span><strong>Heading / course match</strong></div>
+          </div>
+          <div style="padding:12px"><div class="note"><b>Decision role:</b> candidate ranking creates a source hypothesis. CASC then tests how stable that ranking is under plausible uncertainty.</div></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:10px">
+        <div class="panel-head"><span>Candidate Evidence Matrix</span><span>RANKED SOURCE HYPOTHESES</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Rank</th><th>Vessel</th><th>MMSI</th><th>Time</th><th>Space</th><th>Drift</th><th>AIS</th><th>Combined</th><th>Assessment</th></tr></thead>
+            <tbody id="candidateMatrixRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel" id="candidateList" style="margin-top:10px"></div>
+      <div class="panel" style="margin-top:10px">
+        <div class="panel-head">Combined Evidence Interpretation</div>
+        <div style="padding:13px" class="note">The initial ranking combines temporal overlap, spatial proximity to the reconstructed source region, drift consistency, AIS continuity and trajectory compatibility. It is a source hypothesis, not a definitive finding of responsibility.</div>
+      </div>
+    </section>
+
+    <!-- CASC -->
+    <section class="page" id="page-casc">
+      <div class="section-head"><div><div class="eyebrow">Step / Robustness Analysis</div><h2>CASC Stability</h2></div><div class="badge good" id="cascBadge">ROBUST</div></div>
+      <div class="casc-note note" style="margin-bottom:10px"><b>CASC checks attribution stability, not vessel guilt.</b> It perturbs the spill time, drift, wind, AIS position and source radius to test whether the leading source hypothesis remains stable. The certificate records the result as ROBUST, SENSITIVE or ABSTAIN.</div>
+      <div class="casc-layout">
+        <div class="panel">
+          <div class="panel-head">Baseline Attribution</div>
+          <div class="info-list">
+            <div class="info-row"><span>Leader</span><strong id="cascLeader">ALPHA MERIDIAN</strong></div>
+            <div class="info-row"><span>Initial correlation</span><strong id="cascInitial">87%</strong></div>
+            <div class="info-row"><span>Closest alternate</span><strong id="cascAlt">BRAVO TRADER</strong></div>
+            <div class="info-row"><span>Scenarios</span><strong id="cascScenarios">5,000</strong></div>
+          </div>
+          <div class="panel-head">Uncertainty Perturbations <span>WHAT-IF</span></div>
+          <div class="controls">
+            <div class="control"><div class="control-head"><span>Spill time ±</span><b id="vTime">10 min</b></div><input id="sTime" type="range" min="0" max="30" value="10"></div>
+            <div class="control"><div class="control-head"><span>Drift distance ±</span><b id="vDrift">2.0 km</b></div><input id="sDrift" type="range" min="0" max="6" value="2" step=".5"></div>
+            <div class="control"><div class="control-head"><span>Wind uncertainty ±</span><b id="vWind">15%</b></div><input id="sWind" type="range" min="0" max="40" value="15"></div>
+            <div class="control"><div class="control-head"><span>AIS position ±</span><b id="vAis">0.9 km</b></div><input id="sAis" type="range" min="0" max="3" value=".9" step=".1"></div>
+            <div class="control"><div class="control-head"><span>Source radius</span><b id="vRadius">1.5 km</b></div><input id="sRadius" type="range" min="0" max="5" value="1.5" step=".5"></div>
+            <div class="control"><div class="control-head"><span>Scenario count</span><b id="vCount">5,000</b></div><input id="sCount" type="range" min="1000" max="10000" value="5000" step="500"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">Winner Distribution</div>
+          <div class="dist">
+            <div class="dist-col"><div class="dist-bar" id="barA" style="height:150px"><span id="pctA">82%</span></div><div class="dist-name">ALPHA</div></div>
+            <div class="dist-col"><div class="dist-bar" id="barB" style="height:55px"><span id="pctB">14%</span></div><div class="dist-name">BRAVO</div></div>
+            <div class="dist-col"><div class="dist-bar" id="barC" style="height:25px"><span id="pctC">4%</span></div><div class="dist-name">CHARLIE</div></div>
+          </div>
+          <div class="flip">
+            <div class="eyebrow">Counterfactual Winner-Flip Test</div>
+            <div class="flip-grid" style="margin-top:10px">
+              <div class="flip-cell"><div class="flip-label">Current leader</div><div class="flip-value" id="flipLeader">ALPHA MERIDIAN</div></div>
+              <div class="flip-cell"><div class="flip-label">Closest alternate</div><div class="flip-value" id="flipAlt">BRAVO TRADER</div></div>
+              <div class="flip-cell"><div class="flip-label">Smallest tested change</div><div class="flip-value" id="flipThreshold">14 minutes</div></div>
+              <div class="flip-cell"><div class="flip-label">Result</div><div class="flip-value">ALPHA remains leading</div></div>
+            </div>
+            <div style="margin-top:10px" class="note">Key question: <b>What is the smallest plausible change that overturns the current attribution?</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CERTIFICATE -->
+    <section class="page" id="page-certificate">
+      <div class="section-head"><div><div class="eyebrow">Traceability / Decision Record</div><h2>Stability Certificate</h2></div><div class="meta">CASC OUTPUT</div></div>
+      <div class="certificate" id="certificateCard">
+        <div class="cert-head">
+          <div class="cert-title">CASC ATTRIBUTION STABILITY CERTIFICATE</div>
+          <div class="cert-sub">COUNTERFACTUAL ATTRIBUTION STABILITY CERTIFICATE · MARITIME SOURCE ANALYSIS</div>
+        </div>
+        <div class="cert-grid">
+          <div class="cert-field"><div class="cert-label">Certificate ID</div><div class="cert-val" id="certId">CASC-CERT-2026-001</div></div>
+          <div class="cert-field"><div class="cert-label">Incident</div><div class="cert-val">CASC-2026-001</div></div>
+          <div class="cert-field"><div class="cert-label">Leading source hypothesis</div><div class="cert-val" id="certLeader">ALPHA MERIDIAN</div></div>
+          <div class="cert-field"><div class="cert-label">Initial correlation</div><div class="cert-val" id="certCorrelation">87%</div></div>
+          <div class="cert-field"><div class="cert-label">CASC stability</div><div class="cert-val" id="certStability">82%</div></div>
+          <div class="cert-field"><div class="cert-label">Closest alternate</div><div class="cert-val" id="certAlternate">BRAVO TRADER</div></div>
+          <div class="cert-field"><div class="cert-label">Winner-flip threshold</div><div class="cert-val" id="certFlip">14 minutes</div></div>
+          <div class="cert-field"><div class="cert-label">Analysis state</div><div class="cert-val" id="certState">ROBUST</div></div>
+        </div>
+        <div class="cert-status" id="certStatus">ROBUST</div>
+        <div class="disclaimer">Decision summary: This certificate records the stability of a source hypothesis generated from available satellite, metocean and AIS evidence. It is not definitive proof of responsibility and should be interpreted with the underlying evidence and uncertainty analysis.</div>
+        <div class="btn-row"><button class="primary" onclick="window.print()">PRINT / SAVE PDF</button><button class="secondary" onclick="go('history')">VIEW AUDIT HISTORY</button></div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="page" id="page-history">
+      <div class="section-head"><div><div class="eyebrow">Traceability / Audit</div><h2>Analysis History</h2></div><div class="meta">INPUT → OUTPUT → CONFIDENCE</div></div>
+      <div class="panel">
+        <div class="panel-head">Investigation Event History</div>
+        <div class="history" id="historyList"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API="http://127.0.0.1:8000";
+const INCIDENT_DB_ID=1;
+
+const demo={
+  incident:{id:1,incident_id:"CASC-2026-001",incident_type:"OIL_SPILL",location_name:"Arabian Sea",detected_at:"2026-09-04T14:12:00+05:30",satellite_source:"Sentinel-1 / SAR GRD",status:"UNDER ANALYSIS"},
+  detection:{area_km2:12.8,confidence:.91,platform:"Sentinel-1",product:"SAR GRD",polarization:"VV",acquisition_time:"2026-09-04T14:12:00+05:30"},
+  spill:{area_km2:12.8,length_km:6.7,width_km:2.4,perimeter_km:17.2,orientation_deg:32,estimated_age_hours:6,centroid_lat:14.218,centroid_lon:67.731},
+  drift:{distance_km:18.4,direction:"Northeast",confidence:.86,source_lat:14.218,source_lon:67.731,source_radius_km:5,start_time:"2026-09-04T08:12:00+05:30",end_time:"2026-09-04T14:12:00+05:30"},
+  vessels:[
+    {vessel_name:"ALPHA MERIDIAN",mmsi:"123456789",time:"09:18",sog:12.4,cog:47,distance_km:3.2,window:"YES",assessment:"RELEVANT",lat:14.24,lon:67.67},
+    {vessel_name:"BRAVO TRADER",mmsi:"234567890",time:"09:42",sog:10.1,cog:61,distance_km:4.7,window:"YES",assessment:"RELEVANT",lat:14.20,lon:67.70},
+    {vessel_name:"CHARLIE STAR",mmsi:"345678901",time:"10:05",sog:8.8,cog:35,distance_km:7.9,window:"YES",assessment:"LOWER MATCH",lat:14.27,lon:67.80},
+    {vessel_name:"DELTA WAVE",mmsi:"456789012",time:"07:10",sog:14,cog:210,distance_km:26.1,window:"NO",assessment:"EXCLUDED",lat:14.10,lon:67.55},
+    {vessel_name:"ECHO MARINER",mmsi:"567890123",time:"11:44",sog:11.7,cog:292,distance_km:18.5,window:"NO",assessment:"EXCLUDED",lat:14.45,lon:67.90}
+  ],
+  candidates:[
+    {name:"ALPHA MERIDIAN",mmsi:"123456789",rank:1,score:.87,time:.94,space:.91,drift:.84,ais:.89,why:"Strong temporal overlap, closest source-region approach, compatible heading and continuous AIS through the source window."},
+    {name:"BRAVO TRADER",mmsi:"234567890",rank:2,score:.74,time:.88,space:.82,drift:.76,ais:.73,why:"Good time overlap and source proximity, but lower drift consistency and a less direct source-region trajectory."},
+    {name:"CHARLIE STAR",mmsi:"345678901",rank:3,score:.61,time:.79,space:.64,drift:.58,ais:.66,why:"Present in the broad source window, but greater separation and weaker trajectory compatibility reduce the combined evidence."}
+  ],
+  casc:{candidate_id:1,total_scenarios:5000,winner_probability:.82,closest_alternate:"BRAVO TRADER",winner_flip_minutes:14,normalized_perturbation:.84,stability_status:"ROBUST"},
+  certificate:{certificate_id:"CASC-CERT-2026-001",base_leader:"ALPHA MERIDIAN",winner_probability:.82,closest_alternate:"BRAVO TRADER",winner_flip_minutes:14,stability_status:"ROBUST",decision_summary:"Source hypothesis only; not definitive proof of responsibility."},
+  audit:[
+    {event_type:"DETECTION_COMPLETED",created_at:"2026-09-04T14:12:00Z",module:"SAR Spill Detection",status:"COMPLETED",output:"12.8 km² spill detected · 91% confidence"},
+    {event_type:"SPILL_CHARACTERIZATION_COMPLETED",created_at:"2026-09-04T13:42:00Z",module:"Spill Characterization",status:"COMPLETED",output:"6.7 km length · 2.4 km width · orientation 32°"},
+    {event_type:"DRIFT_BACKTRACK_COMPLETED",created_at:"2026-09-04T13:20:00Z",module:"Drift / Backtrack",status:"COMPLETED",output:"18.4 km source reconstruction · 86% confidence"},
+    {event_type:"AIS_RECONSTRUCTION_COMPLETED",created_at:"2026-09-04T12:58:00Z",module:"AIS Reconstruction",status:"COMPLETED",output:"5 historical tracks reviewed · 3 candidates retained"},
+    {event_type:"VESSEL_RANKING_COMPLETED",created_at:"2026-09-04T12:41:00Z",module:"Candidate Vessels",status:"COMPLETED",output:"ALPHA MERIDIAN ranked first · 87% correlation"},
+    {event_type:"CASC_ANALYSIS_COMPLETED",created_at:"2026-09-04T12:20:00Z",module:"CASC Stability",status:"COMPLETED",output:"5,000 scenarios · 82% winner probability"},
+    {event_type:"CERTIFICATE_GENERATED",created_at:"2026-09-04T12:18:00Z",module:"Stability Certificate",status:"GENERATED",output:"CASC-CERT-2026-001 · ROBUST"},
+    {event_type:"AUDIT_PACKAGE_READY",created_at:"2026-09-04T12:15:00Z",module:"Analysis History",status:"READY",output:"Investigation inputs, outputs and confidence states recorded"}
+  ]
+};
+
+let data=JSON.parse(JSON.stringify(demo));
+let maps={};
+let layers={};
+const center=[14.218,67.731];
+
+function first(v){return Array.isArray(v)?(v[0]||{}):(v||{});}
+function fmtPct(v){return Math.round((Number(v)||0)*100)+"%";}
+function fmtDate(v){
+  if(!v)return "—";
+  const d=new Date(v);
+  if(isNaN(d))return v;
+  return d.toISOString().slice(0,16).replace("T"," ")+" UTC";
+}
+
+function go(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  const el=document.getElementById("page-"+page);
+  if(el)el.classList.add("active");
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  const names={
+    cop:["01","COMMON OPERATING PICTURE"],incident:["02","INCIDENT CONTROL"],sar:["03","SAR SPILL DETECTION"],
+    character:["04","SPILL CHARACTERIZATION"],drift:["05","DRIFT / BACKTRACK"],ais:["06","AIS RECONSTRUCTION"],
+    candidates:["07","CANDIDATE VESSELS"],casc:["08","CASC STABILITY"],certificate:["09","STABILITY CERTIFICATE"],history:["10","ANALYSIS HISTORY"]
+  };
+  document.getElementById("crumbStep").textContent=names[page][0];
+  document.getElementById("pageTitle").textContent=names[page][1];
+  setTimelineProgress(page);
+  const pageMap={cop:"copMap",incident:"incidentMap",sar:"sarMap",character:"charMap",drift:"driftMap",ais:"aisMap",candidates:"candidateMap"};
+  if(pageMap[page] && !maps[pageMap[page]]){
+    const mapId=pageMap[page];
+    const m=baseMap(mapId,mapId==="sarMap");
+    addInvestigationLayers(m,mapId);
+    if(mapId==="sarMap")setTimeout(()=>setSarView("overlay"),0);
+  }
+  setTimeout(()=>Object.values(maps).forEach(m=>m.invalidateSize()),120);
+  const c=document.querySelector(".content");
+  if(c)c.scrollTop=0;
+}
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
+function setTimelineProgress(page){
+  const items=[...document.querySelectorAll(".t-item[data-page]")];
+  const idx=Math.max(0,items.findIndex(x=>x.dataset.page===page));
+  items.forEach((x,i)=>x.classList.toggle("active",i===idx));
+  const track=document.querySelector(".timeline-track");
+  if(track)track.style.setProperty("--timeline-progress",(idx/(Math.max(items.length-1,1))*100)+"%");
+}
+document.querySelectorAll(".t-item[data-page]").forEach(item=>item.addEventListener("click",()=>{
+  setTimelineProgress(item.dataset.page);
+  go(item.dataset.page);
+}));
+setTimelineProgress("sar");
+
+function baseMap(id, satellite=false){
+  if(maps[id])return maps[id];
+  const m=L.map(id,{zoomControl:true,attributionControl:true}).setView(center,5.2);
+  const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,attribution:"Esri"});
+  const ocean=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,attribution:"Esri · GEBCO · NOAA"});
+  const street=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"OpenStreetMap"});
+  let fallbackUsed=false;
+  const fallbackLayer=satellite?street:street;
+  const preferred=satellite?sat:street;
+  preferred.on("tileerror",()=>{
+    if(!fallbackUsed){
+      fallbackUsed=true;
+      if(m.hasLayer(preferred))m.removeLayer(preferred);
+      fallbackLayer.addTo(m);
+    }
+  });
+  preferred.addTo(m);
+  maps[id]=m;
+  layers[id]={sat,ocean,street,overlay:L.layerGroup().addTo(m)};
+  return m;
+}
+
+function addInvestigationLayers(m, id){
+  const l=layers[id].overlay;
+  l.clearLayers();
+  const spill=[
+    [14.27,67.67],[14.31,67.72],[14.30,67.78],[14.25,67.82],
+    [14.18,67.80],[14.15,67.74],[14.17,67.68],[14.23,67.64]
+  ];
+  const dr=data.drift||{};
+  const source=[
+    Number(dr.source_lat ?? 13.98),
+    Number(dr.source_lon ?? 67.42)
+  ];
+  const backtrack=[[14.27,67.75],[14.23,67.69],[14.18,67.62],[14.12,67.55],[14.06,67.48],source];
+  const forecast=[[14.27,67.75],[14.32,67.84],[14.38,67.95],[14.44,68.06]];
+  L.polygon(spill,{color:"#111",weight:2,fillColor:"#222",fillOpacity:.42}).addTo(l).bindTooltip("OBSERVED OIL SPILL · 12.8 km²");
+  const spillLat=Number(data.spill?.centroid_lat ?? 14.218);
+  const spillLon=Number(data.spill?.centroid_lon ?? 67.731);
+  L.circleMarker([spillLat,spillLon],{radius:6,color:"#fff",weight:2,fillColor:"#111",fillOpacity:1})
+    .addTo(l)
+    .bindTooltip(`SPILL CENTROID · ${spillLat.toFixed(3)}°N / ${spillLon.toFixed(3)}°E`);
+  L.circle(source,5000,{color:"#17374d",weight:2,fillColor:"#315b73",fillOpacity:.06,dashArray:"5 5"}).addTo(l).bindTooltip("SOURCE REGION · 5 km radius");
+  L.polyline(backtrack,{color:"#17374d",weight:4,dashArray:"8 7"}).addTo(l).bindTooltip("BACKTRACK TRAJECTORY");
+  L.polyline(forecast,{color:"#526c7c",weight:3,dashArray:"3 8"}).addTo(l).bindTooltip("FORECAST DRIFT");
+  const vesselPts=data.vessels.filter(v=>v.window==="YES");
+  vesselPts.forEach((v,i)=>{
+    const pts=[[v.lat-0.025,v.lon-0.08],[v.lat,v.lon],[v.lat+0.018,v.lon+0.06]];
+    L.polyline(pts,{color:i===0?"#a33b3b":"#17374d",weight:i===0?3:2}).addTo(l);
+    const icon=L.divIcon({className:"",html:`<div class="vessel-map-marker ${i===0?"primary":""}"></div>`,iconSize:[14,14],iconAnchor:[7,7]});
+    L.marker([v.lat,v.lon],{icon}).addTo(l).bindTooltip(v.vessel_name+" · "+v.sog+" kn · COG "+String(v.cog).padStart(3,"0")+"°",{direction:"top",offset:[0,-7]});
+    if(i===0)L.marker([v.lat,v.lon],{icon:L.divIcon({className:"",html:`<span class="map-point-label">LEADER</span>`,iconSize:[55,18],iconAnchor:[27,-9]})}).addTo(l);
+  });
+  L.circleMarker([spillLat,spillLon],{radius:8,color:"#fff",weight:3,fillColor:"#a33b3b",fillOpacity:1})
+    .addTo(l)
+    .bindTooltip(`SPILL CENTROID · ${spillLat.toFixed(3)}°N / ${spillLon.toFixed(3)}°E`);
+  L.marker([13.98,67.42],{icon:L.divIcon({className:"",html:`<span class="map-point-label">SOURCE REGION</span>`,iconSize:[95,18],iconAnchor:[47,20]})}).addTo(l);
+  // simple metocean arrows using short polylines
+  [[14.35,67.55],[14.34,67.68],[14.33,67.81],[14.25,67.50]].forEach(p=>{
+    L.polyline([p,[p[0]+.04,p[1]+.08]],{color:"#596b74",weight:1.5}).addTo(l);
+  });
+  m.fitBounds([[13.85,67.25],[14.6,68.2]]);
+}
+
+function initMaps(){
+  const cop=baseMap("copMap",false);
+  addInvestigationLayers(cop,"copMap");
+  setTimeout(()=>cop.invalidateSize(),150);
+}
+function refreshMaps(){
+  Object.entries(maps).forEach(([id,m])=>addInvestigationLayers(m,id));
+  if(maps.sarMap)setSarView("overlay");
+}
+
+document.querySelectorAll(".map-overlay button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".map-overlay button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const id="copMap", m=maps[id], l=layers[id].overlay;
+    l.clearLayers();
+    const mode=btn.dataset.layer;
+    if(mode==="satellite"){
+      if(m.hasLayer(layers[id].ocean))m.removeLayer(layers[id].ocean);
+      if(m.hasLayer(layers[id].street))m.removeLayer(layers[id].street);
+      if(layers[id].ocean && m.hasLayer(layers[id].ocean))m.removeLayer(layers[id].ocean);
+      layers[id].sat.addTo(m);
+    }else{
+      if(m.hasLayer(layers[id].sat))m.removeLayer(layers[id].sat);
+      if(layers[id].ocean && m.hasLayer(layers[id].ocean))m.removeLayer(layers[id].ocean);
+      layers[id].street.addTo(m);
+    }
+    const spill=[
+      [14.27,67.67],[14.31,67.72],[14.30,67.78],[14.25,67.82],[14.18,67.80],[14.15,67.74],[14.17,67.68],[14.23,67.64]
+    ];
+    const source=[13.98,67.42], back=[[14.27,67.75],[14.23,67.69],[14.18,67.62],[14.12,67.55],[14.06,67.48],source];
+    if(["spill","all","satellite"].includes(mode)){
+      L.polygon(spill,{color:"#111",weight:2,fillColor:"#222",fillOpacity:.42}).addTo(l);
+      L.circleMarker([14.235,67.73],{radius:6,color:"#fff",weight:2,fillColor:"#111",fillOpacity:1}).addTo(l);
+    }
+    if(["drift","all"].includes(mode)){
+      L.circle(source,5000,{color:"#17374d",weight:2,fillOpacity:.04}).addTo(l);
+      L.polyline(back,{color:"#17374d",weight:3,dashArray:"7 7"}).addTo(l);
+      L.polyline([[14.27,67.75],[14.32,67.84],[14.38,67.95],[14.44,68.06]],{color:"#17374d",weight:2,dashArray:"2 7"}).addTo(l);
+    }
+    if(["ais","all"].includes(mode)){
+      data.vessels.filter(v=>v.window==="YES").forEach((v,i)=>{
+        L.polyline([[v.lat-.025,v.lon-.08],[v.lat,v.lon],[v.lat+.018,v.lon+.06]],{color:i===0?"#a33b3b":"#17374d",weight:2}).addTo(l);
+        const icon=L.divIcon({className:"",html:`<div class="vessel-map-marker ${i===0?"primary":""}"></div>`,iconSize:[14,14],iconAnchor:[7,7]});
+        L.marker([v.lat,v.lon],{icon}).addTo(l).bindTooltip(v.vessel_name);
+      });
+    }
+    if(["meteo","all"].includes(mode)){
+      [[14.35,67.55],[14.34,67.68],[14.33,67.81],[14.25,67.50]].forEach(p=>L.polyline([p,[p[0]+.04,p[1]+.08]],{color:"#596b74",weight:1.5}).addTo(l));
+    }
+  });
+});
+
+function setSarView(view){
+  const m=maps.sarMap;
+  if(!m)return;
+  const l=layers.sarMap.overlay;
+  l.clearLayers();
+  const spill=[[14.27,67.67],[14.31,67.72],[14.30,67.78],[14.25,67.82],[14.18,67.80],[14.15,67.74],[14.17,67.68],[14.23,67.64]];
+  if(view!=="scene"){
+    L.polygon(spill,{color:"#a33b3b",weight:2,fillColor:"#7b3030",fillOpacity:view==="detection"?.38:.24}).addTo(l).bindTooltip("OIL SPILL DETECTION · 12.8 km²");
+    L.circleMarker([14.235,67.73],{radius:8,color:"#fff",weight:3,fillColor:"#a33b3b",fillOpacity:1}).addTo(l).bindTooltip("DETECTION CENTROID");
+  }
+  if(view==="overlay"){
+    L.circle([13.98,67.42],5000,{color:"#17374d",weight:2,fillOpacity:.03}).addTo(l).bindTooltip("SOURCE REGION");
+    L.polyline([[14.27,67.75],[14.23,67.69],[14.18,67.62],[14.12,67.55],[14.06,67.48],[13.98,67.42]],{color:"#17374d",weight:3,dashArray:"7 7"}).addTo(l);
+  }
+}
+document.querySelectorAll("[data-sar-view]").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll("[data-sar-view]").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  setSarView(btn.dataset.sarView);
+}));
+
+function renderAIS(){
+  const body=document.getElementById("aisRows");
+  if(!body) return;
+  const vessels=Array.isArray(data.vessels)?data.vessels:[];
+  body.innerHTML=vessels.map(v=>{
+    const sog=Number(v.sog ?? v.speed_over_ground ?? v.speed ?? 0);
+    const cog=Number(v.cog ?? v.course_over_ground ?? v.course ?? 0);
+    const distance=Number(v.distance_km ?? v.closest_approach_km ?? v.distance ?? 0);
+    return `
+    <tr>
+      <td><b>${v.vessel_name ?? v.name ?? "UNKNOWN VESSEL"}</b></td>
+      <td>${v.mmsi ?? "—"}</td>
+      <td>${v.time ?? v.timestamp ?? v.position_time ?? "—"}</td>
+      <td>${sog.toFixed(1)} kn</td>
+      <td>${String(Math.round(cog)).padStart(3,"0")}°</td>
+      <td>${distance.toFixed(1)} km</td>
+      <td>${v.window ?? "—"}</td>
+      <td class="${v.assessment==="EXCLUDED"?"excluded":"relevant"}">${v.assessment ?? "RELEVANT"}</td>
+    </tr>`;
+  }).join("");
+}
+function renderCandidates(){
+  const c=Array.isArray(data.candidates)?data.candidates:[];
+  const leader=c[0]||{};
+  const alternate=c[1]||{};
+  const getName=x=>x.name||x.vessel_name||"—";
+  const getScore=x=>Number(x.score ?? x.combined_score ?? x.combined ?? 0);
+  const getPart=(x,key)=>Number(x[key] ?? x[key+"_score"] ?? 0);
+  document.getElementById("candidateCount").textContent=c.length;
+  document.getElementById("candidateLeader").textContent=getName(leader).split(" ").slice(0,1).join(" ");
+  document.getElementById("candidateLeaderScore").textContent=fmtPct(getScore(leader));
+  document.getElementById("candidateAlternate").textContent=getName(alternate).split(" ").slice(0,1).join(" ");
+
+  document.getElementById("candidateMatrixRows").innerHTML=c.map((x,i)=>{
+    const rank=Number(x.rank ?? i+1);
+    const time=getPart(x,"time");
+    const space=getPart(x,"space");
+    const drift=getPart(x,"drift");
+    const ais=getPart(x,"ais");
+    const score=getScore(x);
+    return `
+    <tr>
+      <td><b>#${String(rank).padStart(2,"0")}</b></td>
+      <td><b>${getName(x)}</b></td>
+      <td>${x.mmsi ?? "—"}</td>
+      <td>${Math.round(time*100)}%</td>
+      <td>${Math.round(space*100)}%</td>
+      <td>${Math.round(drift*100)}%</td>
+      <td>${Math.round(ais*100)}%</td>
+      <td class="candidate-score">${Math.round(score*100)}%</td>
+      <td>${rank===1?"LEADING":"ALTERNATE"}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("candidateList").innerHTML=c.map((x,i)=>{
+    const rank=Number(x.rank ?? i+1);
+    const vals=[
+      ["TIME",getPart(x,"time")],
+      ["SPACE",getPart(x,"space")],
+      ["DRIFT",getPart(x,"drift")],
+      ["AIS",getPart(x,"ais")],
+      ["COMBINED",getScore(x)]
+    ];
+    return `
+    <div class="candidate">
+      <div class="candidate-top"><div class="candidate-name">${getName(x)}</div><div class="rank">RANK ${String(rank).padStart(2,"0")}</div></div>
+      <div style="font:11px 'Courier New', monospace;color:#6b7880;margin-top:4px">MMSI ${x.mmsi ?? "—"}</div>
+      ${vals.map(([k,v])=>`
+        <div class="bars"><div class="bar-label">${k}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,v*100))}%"></i></div><div class="bar-val">${Math.round(v*100)}%</div></div>`).join("")}
+      <div class="why"><b>${rank===1?"WHY THIS VESSEL LEADS":"WHY THIS VESSEL MATCHES"}</b><br>${x.why||"Evidence correlation calculated from available time, space, drift and AIS signals."}</div>
+    </div>`;
+  }).join("");
+}
+function renderHistory(){
+  document.getElementById("historyList").innerHTML=data.audit.map((e,i)=>`
+    <div class="event" onclick="openEvent('${e.module}')">
+      <div class="event-top"><div class="event-title">${e.event_type.replaceAll("_"," ")}</div><div class="event-time">${fmtDate(e.created_at)}</div></div>
+      <div class="event-meta">${e.module} · ${e.status}</div>
+      <div style="font-size:11px;color:#55656d;margin-top:5px">${e.output}</div>
+    </div>`).join("");
+}
+function openEvent(module){
+  const map={"SAR Spill Detection":"sar","Drift / Backtrack":"drift","Candidate Vessels":"candidates","CASC Stability":"casc","Stability Certificate":"certificate"};
+  if(map[module])go(map[module]);
+}
+
+function bindData(){
+  const i=data.incident||{};
+  const d=data.detection||{};
+  const s=data.spill||{};
+  const dr=data.drift||{};
+  const cascRaw=data.casc||{};
+  const certRaw=data.certificate||{};
+  const c=cascRaw.casc_runs?.[0]||cascRaw;
+  const cert=certRaw.certificates?.[0]||certRaw;
+  const candidates=Array.isArray(data.candidates)?data.candidates:[];
+  const leader=candidates[0]||{};
+  const leaderName=leader.name||leader.vessel_name||"—";
+  const leaderScore=Number(leader.score ?? leader.combined_score ?? leader.combined ?? 0);
+  const alternateName=leaderName && (c.closest_alternate || candidates[1]?.name || candidates[1]?.vessel_name || "—");
+
+  document.getElementById("crumbCase").textContent=i.incident_id||demo.incident.incident_id;
+  document.getElementById("caseId").textContent=i.incident_id||demo.incident.incident_id;
+  document.getElementById("caseLocation").textContent=i.location_name||demo.incident.location_name;
+  document.getElementById("caseStatus").textContent=i.status||"UNDER ANALYSIS";
+  document.getElementById("caseDetected").textContent=(i.detected_at?fmtDate(i.detected_at):"04 SEP 2026 14:12 UTC").replace(" 00:00","").toUpperCase();
+  document.getElementById("caseSatellite").textContent=i.satellite_source||"Sentinel-1 / SAR GRD";
+  document.getElementById("caseArea").textContent=(s.area_km2??d.area_km2??12.8)+" km²";
+  document.getElementById("evArea").textContent=(d.area_km2??s.area_km2??12.8)+" km²";
+  document.getElementById("evConf").textContent=fmtPct(d.confidence??.91);
+  document.getElementById("evDistance").textContent=(dr.distance_km??18.4)+" km";
+  document.getElementById("evDirection").textContent=String(dr.direction||"Northeast").slice(0,2).toUpperCase();
+  document.getElementById("evDriftConf").textContent=fmtPct(dr.confidence??.86);
+  document.getElementById("evLeader").textContent=leaderName;
+  document.getElementById("evScore").textContent=fmtPct(leaderScore);
+  document.getElementById("evAlternate").textContent=alternateName;
+  document.getElementById("evWinner").textContent=fmtPct(c.winner_probability??.82);
+  document.getElementById("evFlip").textContent=Number(c.winner_flip_minutes??14).toFixed(2).replace(/\.00$/,'')+" min";
+  document.getElementById("evStatus").textContent=c.stability_status||"ROBUST";
+
+  const homeVessel=(Array.isArray(data.vessels)?data.vessels:[])[0]||{};
+  document.getElementById("homeVesselName").textContent=leaderName;
+  const homeMeta=document.querySelector(".vessel-mini-meta");
+  if(homeMeta){
+    const sog=Number(homeVessel.sog ?? homeVessel.speed_over_ground ?? 0);
+    const cog=Number(homeVessel.cog ?? homeVessel.course_over_ground ?? 0);
+    homeMeta.textContent=`MMSI ${homeVessel.mmsi||leader.mmsi||"—"} · ${sog.toFixed(1)} kn · COG ${String(Math.round(cog)).padStart(3,"0")}° · SOURCE WINDOW ${homeVessel.window||"YES"}`;
+  }
+
+  document.getElementById("driftDistance").textContent=(dr.distance_km??18.4)+" km";
+  document.getElementById("driftDirection").textContent=String(dr.direction||"Northeast").toUpperCase();
+
+  document.getElementById("cascLeader").textContent=c.vessel_name||leaderName;
+  document.getElementById("cascInitial").textContent=fmtPct(leaderScore);
+  document.getElementById("cascAlt").textContent=c.closest_alternate||candidates[1]?.name||candidates[1]?.vessel_name||"—";
+  document.getElementById("cascScenarios").textContent=Number(c.total_scenarios??5000).toLocaleString();
+  document.getElementById("cascBadge").textContent=c.stability_status||"ROBUST";
+  document.getElementById("flipLeader").textContent=c.vessel_name||leaderName;
+  document.getElementById("flipAlt").textContent=c.closest_alternate||candidates[1]?.name||candidates[1]?.vessel_name||"—";
+  document.getElementById("flipThreshold").textContent=Number(c.winner_flip_minutes??14).toFixed(2).replace(/\.00$/,'')+" minutes";
+
+  document.getElementById("certId").textContent=cert.certificate_id||"CASC-CERT-0001";
+  document.getElementById("certLeader").textContent=cert.leading_vessel||cert.base_leader||c.vessel_name||leaderName;
+  document.getElementById("certCorrelation").textContent=fmtPct(Number(cert.initial_correlation ?? leaderScore));
+  document.getElementById("certStability").textContent=fmtPct(cert.casc_stability!=null?Number(cert.casc_stability)/100:Number(cert.winner_probability??.82));
+  document.getElementById("certAlternate").textContent=cert.closest_alternate||c.closest_alternate||"—";
+  document.getElementById("certFlip").textContent=Number(cert.winner_flip_minutes??14).toFixed(2).replace(/\.00$/,'')+" minutes";
+  document.getElementById("certState").textContent=cert.status||cert.stability_status||"ROBUST";
+  document.getElementById("certStatus").textContent=cert.status||cert.stability_status||"ROBUST";
+  const dist=c.winner_distribution||{};
+  const distEntries=Object.entries(dist);
+  ["barA","barB","barC"].forEach((id)=>{const el=document.getElementById(id);if(el)el.style.height="10px";});
+  ["pctA","pctB","pctC"].forEach((id)=>{const el=document.getElementById(id);if(el)el.textContent="0%";});
+  distEntries.slice(0,3).forEach(([name,pct],idx)=>{
+    const value=Number(pct)<=1?Number(pct)*100:Number(pct);
+    const letter=["A","B","C"][idx];
+    const bar=document.getElementById("bar"+letter);
+    const text=document.getElementById("pct"+letter);
+    if(bar)bar.style.height=Math.max(8,value*1.75)+"px";
+    if(text)text.textContent=Math.round(value)+"%";
+    const label=bar?.parentElement?.querySelector(".dist-name");
+    if(label)label.textContent=String(name).split(" ").slice(0,1).join(" ").toUpperCase();
+  });
+  const certSummary=document.querySelector("#certificateCard .disclaimer");
+  if(certSummary && cert.decision_summary) certSummary.textContent=cert.decision_summary;
+
+  renderAIS();
+  renderCandidates();
+  renderHistory();
+}
+
+async function getJSON(path){
+  const r=await fetch(API+path,{signal:AbortSignal.timeout(4000)});
+  if(!r.ok)throw new Error(path);
+  return await r.json();
+}
+async function refreshBackend(){
+  const state=document.getElementById("apiState");
+  if(state) state.textContent="SYNC";
+  await loadBackend();
+  Object.values(maps).forEach(m=>setTimeout(()=>m.invalidateSize(),80));
+}
+
+async function loadBackend(){
+  try{
+    console.log("Connecting to backend:",API);
+    const incidentRaw=await getJSON("/incidents/");
+    const incidents=Array.isArray(incidentRaw)?incidentRaw:(incidentRaw.incidents||incidentRaw.data||[]);
+    if(incidents.length) data.incident=incidents[0];
+
+    const endpoints=[
+      ["detection","detection"],["spill","spill"],["drift","drift"],
+      ["vessels","vessels"],["candidates","candidates"],["casc","casc"],
+      ["certificate","certificates"],["audit","audit"]
+    ];
+
+    const results=await Promise.all(endpoints.map(async([key,endpoint])=>{
+      try{
+        const value=await getJSON("/"+endpoint+"/"+INCIDENT_DB_ID);
+        console.log(endpoint+" API:",value);
+        return {key,value,success:true};
+      }catch(error){
+        console.warn(endpoint+" API failed:",error);
+        return {key,value:null,success:false};
+      }
+    }));
+
+    results.forEach(item=>{
+      if(!item.success||item.value==null)return;
+      const value=item.value;
+      if(item.key==="vessels"){
+        const rows=Array.isArray(value)?value:(value.vessels||value.positions||value.data||[]);
+        data.vessels=rows.map(v=>({
+          ...v,
+          vessel_name:v.vessel_name||v.name||"UNKNOWN VESSEL",
+          timestamp:v.timestamp||v.position_time||v.time,
+          time:v.time||v.timestamp||v.position_time,
+          sog:v.sog??v.speed_over_ground??v.speed,
+          cog:v.cog??v.course_over_ground??v.course,
+          distance_km:v.distance_km??v.closest_approach_km??v.distance,
+          lat:v.lat??v.latitude,
+          lon:v.lon??v.longitude,
+          window:v.window??(v.time_window_match?"YES":"NO"),
+          assessment:v.assessment??(v.time_window_match&&v.source_region_overlap?"RELEVANT":"EXCLUDED")
+        }));
+      }else if(item.key==="candidates"){
+        const rows=Array.isArray(value)?value:(value.candidates||value.data||[]);
+        data.candidates=rows.map((x,i)=>({
+          ...x,
+          name:x.name||x.vessel_name||"UNKNOWN VESSEL",
+          vessel_name:x.vessel_name||x.name||"UNKNOWN VESSEL",
+          rank:x.rank??i+1,
+          score:Number(x.score??x.combined_score??x.combined??0),
+          time:Number(x.time??x.time_score??0),
+          space:Number(x.space??x.space_score??0),
+          drift:Number(x.drift??x.drift_score??0),
+          ais:Number(x.ais??x.ais_score??0)
+        }));
+      }else if(item.key==="casc"){
+        data.casc=value.casc_runs?.[0]||value;
+      }else if(item.key==="certificate"){
+        data.certificate=value.certificates?.[0]||value;
+      }else if(item.key==="audit"){
+        data.audit=Array.isArray(value)?value:(value.events||value.audit||[]);
+      }else{
+        data[item.key]=Array.isArray(value)?first(value):value;
+      }
+    });
+
+    document.getElementById("apiState").textContent="ONLINE";
+    document.getElementById("dataState").textContent="API";
+    bindData();
+    refreshMaps();
+
+    console.log("================================");
+    console.log("CASC API CONNECTION SUCCESS");
+    console.log("Incident:",data.incident);
+    console.log("Detection:",data.detection);
+    console.log("Spill:",data.spill);
+    console.log("Drift:",data.drift);
+    console.log("Vessels:",data.vessels);
+    console.log("Candidates:",data.candidates);
+    console.log("CASC:",data.casc);
+    console.log("Certificate:",data.certificate);
+    console.log("Audit:",data.audit);
+    console.log("================================");
+  }catch(error){
+    console.error("BACKEND CONNECTION ERROR:",error);
+    document.getElementById("apiState").textContent="OFFLINE";
+    document.getElementById("dataState").textContent="DEMO";
+    bindData();
+  }
+}
+
+function setupCasc(){
+  const pairs=[
+    ["sTime","vTime",v=>v+" min"],
+    ["sDrift","vDrift",v=>Number(v).toFixed(1)+" km"],
+    ["sWind","vWind",v=>v+"%"],
+    ["sAis","vAis",v=>Number(v).toFixed(1)+" km"],
+    ["sRadius","vRadius",v=>Number(v).toFixed(1)+" km"],
+    ["sCount","vCount",v=>Number(v).toLocaleString()]
+  ];
+  pairs.forEach(([id,out,fn])=>{
+    document.getElementById(id).addEventListener("input",e=>{
+      document.getElementById(out).textContent=fn(e.target.value);
+      const t=Number(document.getElementById("sTime").value);
+      const w=Number(document.getElementById("sWind").value);
+      const a=Number(document.getElementById("sAis").value);
+      const r=Number(document.getElementById("sRadius").value);
+      const baseProb=Number(data.casc?.winner_probability ?? .82)*100;
+      let alpha=Math.max(1,baseProb-(t-10)*.55-(w-15)*.22-(a-.9)*4-(r-1.5)*1.7);
+      alpha=Math.min(99,alpha);
+      const remaining=100-alpha;
+      const bravo=Math.max(1,Math.min(remaining-1,remaining*.72));
+      const charlie=Math.max(0,100-alpha-bravo);
+      document.getElementById("pctA").textContent=Math.round(alpha)+"%";
+      document.getElementById("pctB").textContent=Math.round(bravo)+"%";
+      document.getElementById("pctC").textContent=Math.round(charlie)+"%";
+      document.getElementById("barA").style.height=(alpha*1.75)+"px";
+      document.getElementById("barB").style.height=(bravo*1.75)+"px";
+      document.getElementById("barC").style.height=(Math.max(charlie,4)*1.75)+"px";
+      document.getElementById("flipThreshold").textContent=Math.max(4,Math.round(14-(t-10)*.15+(w-15)*.05))+" minutes";
+    });
+  });
+}
+document.querySelectorAll("[data-fc]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("[data-fc]").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+  document.getElementById("driftMapTime").textContent="FORECAST +"+b.dataset.fc+" H";
+}));
+document.getElementById("driftSlider").addEventListener("input",e=>{
+  const times=["08:12","09:30","10:30","11:30","12:30","13:30","14:12"];
+  document.getElementById("driftMapTime").textContent=times[Number(e.target.value)]+" UTC";
+  document.getElementById("mapTime").textContent=times[Number(e.target.value)]+" UTC";
+});
+
+function clock(){
+  const d=new Date();
+  document.getElementById("clock").textContent=d.toISOString().slice(11,19);
+}
+setInterval(clock,1000);clock();
+
+window.CASCFrontend={
+  refresh:refreshBackend,
+  getData:()=>data
+};
+
+window.addEventListener("load",()=>{
+  // Initialize each UI module independently so a map/UI error
+  // cannot prevent the backend connection check from running.
+  try{ initMaps(); }catch(e){ console.warn("Map initialization skipped:", e); }
+  try{ bindData(); }catch(e){ console.warn("Initial data bind skipped:", e); }
+  try{ setupCasc(); }catch(e){ console.warn("CASC controls initialization skipped:", e); }
+  loadBackend();
+});
+
+
+</script>
+</body>
+</html>
